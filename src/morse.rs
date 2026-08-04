@@ -15,9 +15,59 @@ use alloc::vec::Vec;
 static MorseBindings: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLazyCell::new(|| {
     let dot = MorseSegment::Dot;
     let dash = MorseSegment::Dash;
-    let fin = MorseSegment::LetterEnd;
     let mut map = HashMap::new();
-    map.insert('a', alloc::vec![fin]);
+    map.insert('a', alloc::vec![dot, dash]);
+    map.insert('b', alloc::vec![dash, dot, dot, dot]);
+    map.insert('c', alloc::vec![dash, dot, dash, dot]);
+    map.insert('d', alloc::vec![dash, dot, dot]);
+    map.insert('e', alloc::vec![dot]);
+    map.insert('f', alloc::vec![dot, dot, dash, dot]);
+    map.insert('g', alloc::vec![dash, dash, dot]);
+    map.insert('h', alloc::vec![dot, dot, dot, dot]);
+    map.insert('i', alloc::vec![dot, dot]);
+    map.insert('j', alloc::vec![dot, dash, dash, dash]);
+    map.insert('k', alloc::vec![dash, dot, dash]);
+    map.insert('l', alloc::vec![dot, dash, dot, dot]);
+    map.insert('m', alloc::vec![dash, dash]);
+    map.insert('n', alloc::vec![dash, dot]);
+    map.insert('o', alloc::vec![dash, dash, dash]);
+    map.insert('p', alloc::vec![dot, dash, dash, dot]);
+
+    map.insert('q', alloc::vec![]);
+    map.insert('r', alloc::vec![]);
+    map.insert('s', alloc::vec![]);
+    map.insert('t', alloc::vec![]);
+    map.insert('u', alloc::vec![]);
+    map.insert('v', alloc::vec![]);
+    map.insert('w', alloc::vec![]);
+    map.insert('x', alloc::vec![]);
+    map.insert('y', alloc::vec![]);
+    map.insert('z', alloc::vec![]);
+    map.insert(' ', alloc::vec![MorseSegment::WordEnd]);
+    map.insert('0', alloc::vec![]);
+    map.insert('1', alloc::vec![]);
+    map.insert('2', alloc::vec![]);
+    map.insert('3', alloc::vec![]);
+    map.insert('4', alloc::vec![]);
+    map.insert('5', alloc::vec![]);
+    map.insert('6', alloc::vec![]);
+    map.insert('7', alloc::vec![]);
+    map.insert('8', alloc::vec![]);
+    map.insert('9', alloc::vec![]);
+    map.insert('.', alloc::vec![]);
+    map.insert('?', alloc::vec![]);
+    map.insert(',', alloc::vec![]);
+    map.insert('\'', alloc::vec![]);
+    map.insert('"', alloc::vec![]);
+    map.insert(':', alloc::vec![]);
+    map.insert('+', alloc::vec![]);
+    map.insert('=', alloc::vec![]);
+    map.insert('/', alloc::vec![]);
+    map.insert('-', alloc::vec![]);
+    map.insert('(', alloc::vec![]);
+    map.insert(')', alloc::vec![]);
+    map.insert('&', alloc::vec![]);
+    map.insert('@', alloc::vec![]);
     map
 });
 
@@ -43,6 +93,7 @@ const WORDEND: u8 = 3;
 
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
+#[derive(Copy, Clone)]
 enum MorseSegment {
     Dot = DOT,
     Dash = DASH,
