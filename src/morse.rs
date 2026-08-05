@@ -6,11 +6,10 @@
 // relate a character to a sequence of beeps and boops.
 // speed up and slow down
 
-use core::cell::LazyCell;
-use core::ops::Deref;
-
 use agb::hash_map::HashMap;
 use alloc::vec::Vec;
+use core::cell::LazyCell;
+use core::ops::Deref;
 
 static MorseBindings: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLazyCell::new(|| {
     let dot = MorseSegment::Dot;
@@ -82,7 +81,7 @@ impl<T, F: FnOnce() -> T> SuperLazyCell<T, F> {
 impl<T, F: FnOnce() -> T> Deref for SuperLazyCell<T, F> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &*self.0 //Just learned how much this is doing all at once. The * operator is exactly the same as saying self.deref(), which is to say "get the thing out of self", and * is going to be a different function based on what type self is. A Trait/interface/typeclass is a way of saying "if it has this trait, it will implement the corresponding function"
     }
 }
 
@@ -103,9 +102,10 @@ enum MorseSegment {
 
 type MorseCluster = u8;
 
-fn extract_morse_segment(morse_byte: u8, position: usize) -> MorseSegment {
-    let mut temp = morse_byte >> (position * 2);
-    temp &= 0b11;
+//Extracts a single morse segment from a cluster of 4
+fn extract_morse_segment(morse_cluster: u8, position: usize) -> MorseSegment {
+    let mut temp = morse_cluster >> (position * 2); //shifts the given morse_cluster u8 till the 2 bits we care about are the rightmost 2
+    temp &= 0b11; //then we mask off just those bits with a bitwise and
     match temp {
         DOT => MorseSegment::Dot,
         DASH => MorseSegment::Dash,
@@ -116,17 +116,32 @@ fn extract_morse_segment(morse_byte: u8, position: usize) -> MorseSegment {
 }
 
 fn pack_morse_cluster(
-    q1: MorseSegment,
-    q2: MorseSegment,
-    q3: MorseSegment,
-    q4: MorseSegment,
+    q0: MorseSegment,
+    q1: Option<MorseSegment>,
+    q2: Option<MorseSegment>,
+    q3: Option<MorseSegment>,
 ) -> MorseCluster {
-    let mut proto_cluster = q1 as u8;
-    proto_cluster |= (q2 as u8) << 2;
-    proto_cluster |= (q3 as u8) << 4;
-    proto_cluster |= (q4 as u8) << 6;
+    let mut proto_cluster = q0 as u8;
+
+    //if q1 is some, declare a variable called segment which is the value within the q1 option
+    if let Some(segment) = q1 {
+        proto_cluster |= (segment as u8) << 2;
+        // pack the segment
+    }
+
+    if let Some(segment) = q2 {
+        proto_cluster |= (segment as u8) << 4;
+        // pack the segment
+    }
+
+    if let Some(segment) = q3 {
+        proto_cluster |= (segment as u8) << 6;
+        // pack the segment
+    }
     proto_cluster
-}
+} //try rewriting this with let/else syntax after verifying that it works - would be an easy 
+
+fn pack_morse_segments(segments: Vec<MorseSegment>) -> MorseString {}
 
 struct MorseString {
     length: usize,
@@ -152,3 +167,8 @@ mod tests {
         assert_matches!(result, MorseSegment::Dot);
     }
 }
+
+// MorseSegment
+//   pack
+// MorseCluster = <= 4 MorseSegments
+// MorseString = length (segment count) + bunch of MorseClusters
