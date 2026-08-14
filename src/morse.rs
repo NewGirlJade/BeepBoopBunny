@@ -11,7 +11,7 @@ use alloc::vec::Vec;
 use core::cell::LazyCell;
 use core::ops::Deref;
 
-static MorseBindings: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLazyCell::new(|| {
+static MORSE_BINDINGS: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLazyCell::new(|| {
     let dot = MorseSegment::Dot;
     let dash = MorseSegment::Dash;
     let mut map = HashMap::new();
@@ -31,46 +31,47 @@ static MorseBindings: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLaz
     map.insert('n', alloc::vec![dash, dot]);
     map.insert('o', alloc::vec![dash, dash, dash]);
     map.insert('p', alloc::vec![dot, dash, dash, dot]);
-
-    map.insert('q', alloc::vec![]);
-    map.insert('r', alloc::vec![]);
-    map.insert('s', alloc::vec![]);
-    map.insert('t', alloc::vec![]);
-    map.insert('u', alloc::vec![]);
-    map.insert('v', alloc::vec![]);
-    map.insert('w', alloc::vec![]);
-    map.insert('x', alloc::vec![]);
-    map.insert('y', alloc::vec![]);
-    map.insert('z', alloc::vec![]);
+    map.insert('q', alloc::vec![dash, dash, dot, dash]);
+    map.insert('r', alloc::vec![dot, dash, dot]);
+    map.insert('s', alloc::vec![dot, dot, dot]);
+    map.insert('t', alloc::vec![dash]);
+    map.insert('u', alloc::vec![dot, dot, dash]);
+    map.insert('v', alloc::vec![dot, dot, dot, dash]);
+    map.insert('w', alloc::vec![dot, dash, dash]);
+    map.insert('x', alloc::vec![dash, dot, dot, dash]);
+    map.insert('y', alloc::vec![dash, dot, dash, dash]);
+    map.insert('z', alloc::vec![dash, dash, dot, dot]);
     map.insert(' ', alloc::vec![MorseSegment::WordEnd]);
-    map.insert('0', alloc::vec![]);
-    map.insert('1', alloc::vec![]);
-    map.insert('2', alloc::vec![]);
-    map.insert('3', alloc::vec![]);
-    map.insert('4', alloc::vec![]);
-    map.insert('5', alloc::vec![]);
-    map.insert('6', alloc::vec![]);
-    map.insert('7', alloc::vec![]);
-    map.insert('8', alloc::vec![]);
-    map.insert('9', alloc::vec![]);
-    map.insert('.', alloc::vec![]);
-    map.insert('?', alloc::vec![]);
-    map.insert(',', alloc::vec![]);
-    map.insert('\'', alloc::vec![]);
-    map.insert('"', alloc::vec![]);
-    map.insert(':', alloc::vec![]);
-    map.insert('+', alloc::vec![]);
-    map.insert('=', alloc::vec![]);
-    map.insert('/', alloc::vec![]);
-    map.insert('-', alloc::vec![]);
-    map.insert('(', alloc::vec![]);
-    map.insert(')', alloc::vec![]);
-    map.insert('&', alloc::vec![]);
-    map.insert('@', alloc::vec![]);
+    map.insert('0', alloc::vec![dash, dash, dash, dash, dash]);
+    map.insert('1', alloc::vec![dot, dash, dash, dash, dash]);
+    map.insert('2', alloc::vec![dot, dot, dash, dash, dash]);
+    map.insert('3', alloc::vec![dot, dot, dot, dash, dash]);
+    map.insert('4', alloc::vec![dot, dot, dot, dot, dash]);
+    map.insert('5', alloc::vec![dot, dot, dot, dot, dot]);
+    map.insert('6', alloc::vec![dash, dot, dot, dot, dot]);
+    map.insert('7', alloc::vec![dash, dash, dot, dot, dot]);
+    map.insert('8', alloc::vec![dash, dash, dash, dot, dot]);
+    map.insert('9', alloc::vec![dash, dash, dash, dash, dot]);
+    map.insert('.', alloc::vec![dot, dash, dot, dash, dot, dash]);
+    map.insert('?', alloc::vec![dot, dot, dash, dash, dot, dot]);
+    map.insert(',', alloc::vec![dash, dash, dot, dot, dash, dash]);
+    map.insert('\'', alloc::vec![dot, dash, dash, dash, dash, dot]); // ' char
+    map.insert('"', alloc::vec![dot, dash, dot, dot, dash, dot]);
+    map.insert(':', alloc::vec![dash, dash, dash, dot, dot, dot]);
+    map.insert('+', alloc::vec![dot, dash, dot, dash, dot]);
+    map.insert('=', alloc::vec![dash, dot, dot, dot, dash]);
+    map.insert('/', alloc::vec![dash, dot, dot, dash, dot]);
+    map.insert('-', alloc::vec![dash, dot, dot, dot, dot, dash]);
+    map.insert('(', alloc::vec![dash, dot, dash, dash, dot]);
+    map.insert(')', alloc::vec![dash, dot, dash, dash, dot, dash]);
+    map.insert('&', alloc::vec![dot, dash, dot, dot, dot]);
+    map.insert('@', alloc::vec![dot, dash, dash, dot, dash, dot]);
     map
 });
+//"error" in morse is <HH>
 
-//This super-cursed abomination of sins is just so the compiler will stop yelling about LazyCell not being threadsafe... on the single threaded GBA. Yip-E. I really wish core had LazyLock >.<
+//These super-cursed abominations of sins (the superLazyCell struct and related functions) are just so the compiler will stop yelling about LazyCell not being threadsafe... on the single threaded GBA. Yip-E. I really wish core had LazyLock >.<
+
 struct SuperLazyCell<T, F = fn() -> T>(LazyCell<T, F>);
 unsafe impl<T, F: FnOnce() -> T> Sync for SuperLazyCell<T, F> {}
 impl<T, F: FnOnce() -> T> SuperLazyCell<T, F> {
@@ -81,7 +82,7 @@ impl<T, F: FnOnce() -> T> SuperLazyCell<T, F> {
 impl<T, F: FnOnce() -> T> Deref for SuperLazyCell<T, F> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        &*self.0 //Just learned how much this is doing all at once. The * operator is exactly the same as saying self.deref(), which is to say "get the thing out of self", and * is going to be a different function based on what type self is. A Trait/interface/typeclass is a way of saying "if it has this trait, it will implement the corresponding function"
+        &self.0
     }
 }
 
@@ -92,7 +93,7 @@ const WORDEND: u8 = 3;
 
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum MorseSegment {
     Dot = DOT,
     Dash = DASH,
@@ -106,7 +107,11 @@ type MorseCluster = u8;
 fn extract_morse_segment(morse_cluster: u8, position: usize) -> MorseSegment {
     let mut temp = morse_cluster >> (position * 2); //shifts the given morse_cluster u8 till the 2 bits we care about are the rightmost 2
     temp &= 0b11; //then we mask off just those bits with a bitwise and
-    match temp {
+    u8_to_morse_segment(temp)
+}
+
+fn u8_to_morse_segment(variable: u8) -> MorseSegment {
+    match variable {
         DOT => MorseSegment::Dot,
         DASH => MorseSegment::Dash,
         LETTEREND => MorseSegment::LetterEnd,
@@ -115,60 +120,96 @@ fn extract_morse_segment(morse_cluster: u8, position: usize) -> MorseSegment {
     }
 }
 
-fn pack_morse_cluster(
-    q0: MorseSegment,
-    q1: Option<MorseSegment>,
-    q2: Option<MorseSegment>,
-    q3: Option<MorseSegment>,
-) -> MorseCluster {
-    let mut proto_cluster = q0 as u8;
-
-    //if q1 is some, declare a variable called segment which is the value within the q1 option
-    if let Some(segment) = q1 {
-        proto_cluster |= (segment as u8) << 2;
-        // pack the segment
+//unpacks all 4 quarters of a morse cluster into a new vec. Note that this function assumes all 4 quarters have valid data.
+fn unpack_morse_cluster(morse_cluster: u8) -> Vec<MorseSegment> {
+    let temp = alloc::vec![
+        &morse_cluster & 0b11,
+        &morse_cluster & 0b1100,
+        &morse_cluster & 0b110000,
+        &morse_cluster & 0b11000000,
+    ];
+    let mut output = Vec::new();
+    for segment in temp.iter() {
+        output.push(u8_to_morse_segment(*segment));
     }
+    output
+}
 
-    if let Some(segment) = q2 {
-        proto_cluster |= (segment as u8) << 4;
-        // pack the segment
+fn pack_morse_string(segments: Vec<MorseSegment>) -> MorseString {
+    let mut new_morse_string = MorseString::new();
+    for item in segments {
+        new_morse_string.pack_segment(item);
     }
-
-    if let Some(segment) = q3 {
-        proto_cluster |= (segment as u8) << 6;
-        // pack the segment
-    }
-    proto_cluster
-} //try rewriting this with let/else syntax after verifying that it works - would be an easy 
-
-fn pack_morse_segments(segments: Vec<MorseSegment>) -> MorseString {}
+    new_morse_string
+}
 
 struct MorseString {
-    length: usize,
+    len: usize,
     data: Vec<MorseCluster>,
 }
 
 impl MorseString {
-    fn string_to_morse(inputstring: &str) -> MorseString {
-        let mut output = Vec::new();
-        for char in inputstring {}
+    fn new() -> MorseString {
+        MorseString {
+            len: 0,
+            data: Vec::new(),
+        }
+    }
+    fn pack_segment(&mut self, segment: MorseSegment) {
+        let position = self.len % 4;
+        let current_segment = self.current_segment();
+        match position {
+            0 => *current_segment |= segment as u8,
+            1 => *current_segment |= (segment as u8) << 2,
+            2 => *current_segment |= (segment as u8) << 4,
+            3 => *current_segment |= (segment as u8) << 6,
+            _ => unreachable!(),
+        }
+        self.increment_length();
+    }
+
+    fn current_segment(&mut self) -> &mut MorseCluster {
+        &mut self.data[self.len / 4]
+    }
+    fn increment_length(&mut self) {
+        self.len += 1;
+        if self.len.is_multiple_of(4) && self.len / 4 == self.data.len() {
+            self.data.push(0b00);
+        }
+    }
+    fn to_text(&self) -> Vec<char> {
+        Vec::new()
+        //TODO
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use agb::println;
     use core::assert_matches;
 
     use super::*;
 
     #[test_case]
-    fn it_works(_gba: &mut agb::Gba) {
-        let result = extract_morse_segment(0b00111111, 3);
-        assert_matches!(result, MorseSegment::Dot);
+    fn test_extract_single_segment(_gba: &mut agb::Gba) {
+        let data = 0b00011011;
+        assert_eq!(extract_morse_segment(data, 3), MorseSegment::Dot);
+        assert_eq!(extract_morse_segment(data, 2), MorseSegment::Dash);
+        assert_eq!(extract_morse_segment(data, 1), MorseSegment::LetterEnd);
+        assert_eq!(extract_morse_segment(data, 0), MorseSegment::WordEnd);
+    }
+
+    #[test_case]
+    fn test_read_morse_binding(_gba: &mut agb::Gba) {
+        let Some(result) = MORSE_BINDINGS.get(&'a') else {
+            panic!("No bindings found");
+        };
+        let expected_result = &alloc::vec![MorseSegment::Dot, MorseSegment::Dash];
+        // println!("{:?}-{:?}", result, expected_result);
+        assert_eq!(result, expected_result);
+    }
+    #[test_case]
+    fn test_bindings_length(_gba: &mut agb::Gba) {
+        assert_eq!(MORSE_BINDINGS.len(), 51);
     }
 }
-
-// MorseSegment
-//   pack
-// MorseCluster = <= 4 MorseSegments
-// MorseString = length (segment count) + bunch of MorseClusters
