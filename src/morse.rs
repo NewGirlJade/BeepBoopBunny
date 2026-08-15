@@ -1,16 +1,9 @@
-//what do I possibly need to do with morse code?
-// turn strings into morse code
-// turn morse code into strings?
-// turn morse code data into signals for the console to make sounds and/or toggle sprites
-// parse user input into morse code / string data
-// relate a character to a sequence of beeps and boops.
-// speed up and slow down
-
 use agb::hash_map::HashMap;
 use alloc::vec::Vec;
 use core::cell::LazyCell;
 use core::ops::Deref;
 
+//static bindings from english characters to morse code (source: https://morsecode.world/international/morse.html )
 static MORSE_BINDINGS: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLazyCell::new(|| {
     let dot = MorseSegment::Dot;
     let dash = MorseSegment::Dash;
@@ -68,10 +61,8 @@ static MORSE_BINDINGS: SuperLazyCell<HashMap<char, Vec<MorseSegment>>> = SuperLa
     map.insert('@', alloc::vec![dot, dash, dash, dot, dash, dot]);
     map
 });
-//"error" in morse is <HH>
 
-//These super-cursed abominations of sins (the superLazyCell struct and related functions) are just so the compiler will stop yelling about LazyCell not being threadsafe... on the single threaded GBA. Yip-E. I really wish core had LazyLock >.<
-
+// SuperLazyCell and related functions are just so the compiler will stop yelling about LazyCell not being threadsafe. The GBA is single threaded- it's fine.
 struct SuperLazyCell<T, F = fn() -> T>(LazyCell<T, F>);
 unsafe impl<T, F: FnOnce() -> T> Sync for SuperLazyCell<T, F> {}
 impl<T, F: FnOnce() -> T> SuperLazyCell<T, F> {
@@ -86,11 +77,13 @@ impl<T, F: FnOnce() -> T> Deref for SuperLazyCell<T, F> {
     }
 }
 
+// constants for the MorseSegment Enum to use
 const DOT: u8 = 0;
 const DASH: u8 = 1;
 const LETTEREND: u8 = 2;
 const WORDEND: u8 = 3;
 
+//enum to represent all the data one needs to represent morse code compactly
 #[repr(u8)]
 #[cfg_attr(test, derive(Debug))]
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -101,48 +94,47 @@ enum MorseSegment {
     WordEnd = WORDEND,
 }
 
-type MorseCluster = u8;
-
-//Extracts a single morse segment from a cluster of 4
-fn extract_morse_segment(morse_cluster: u8, position: usize) -> MorseSegment {
-    let mut temp = morse_cluster >> (position * 2); //shifts the given morse_cluster u8 till the 2 bits we care about are the rightmost 2
-    temp &= 0b11; //then we mask off just those bits with a bitwise and
-    u8_to_morse_segment(temp)
+#[derive(PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
+// Four Morse Segments in a trenchcoat
+struct MorseCluster(u8);
+impl MorseCluster {
+    // Extracts 4 morse segments from a full cluster
+    fn unpack(&self) -> [MorseSegment; 4] {
+        let morse_cluster = self.0;
+        [
+            u8_to_morse_segment(morse_cluster & 0b11),
+            u8_to_morse_segment((morse_cluster & 0b1100) >> 2),
+            u8_to_morse_segment((morse_cluster & 0b110000) >> 4),
+            u8_to_morse_segment((morse_cluster & 0b11000000) >> 6),
+        ]
+    }
 }
-
+// Converts a u8 intermediate representation to a MorseSegment
 fn u8_to_morse_segment(variable: u8) -> MorseSegment {
     match variable {
         DOT => MorseSegment::Dot,
         DASH => MorseSegment::Dash,
         LETTEREND => MorseSegment::LetterEnd,
         WORDEND => MorseSegment::WordEnd,
-        _ => unreachable!(),
+        _ => {
+            agb::println!("error: variable {:?} is invalid", variable);
+            unreachable!();
+        }
     }
 }
 
-//unpacks all 4 quarters of a morse cluster into a new vec. Note that this function assumes all 4 quarters have valid data.
-fn unpack_morse_cluster(morse_cluster: u8) -> Vec<MorseSegment> {
-    let temp = alloc::vec![
-        &morse_cluster & 0b11,
-        &morse_cluster & 0b1100,
-        &morse_cluster & 0b110000,
-        &morse_cluster & 0b11000000,
-    ];
-    let mut output = Vec::new();
-    for segment in temp.iter() {
-        output.push(u8_to_morse_segment(*segment));
-    }
-    output
-}
-
-fn pack_morse_string(segments: Vec<MorseSegment>) -> MorseString {
+// Takes a vector or morse segments and packs them into a MorseString
+fn pack_morse_string(segments: &Vec<MorseSegment>) -> MorseString {
     let mut new_morse_string = MorseString::new();
     for item in segments {
-        new_morse_string.pack_segment(item);
+        new_morse_string.pack_segment(*item);
     }
     new_morse_string
 }
 
+#[cfg_attr(test, derive(Debug))]
+// A bundle of morse data
 struct MorseString {
     len: usize,
     data: Vec<MorseCluster>,
@@ -157,25 +149,38 @@ impl MorseString {
     }
     fn pack_segment(&mut self, segment: MorseSegment) {
         let position = self.len % 4;
-        let current_segment = self.current_segment();
+        let current_cluster = &mut self.current_cluster().0;
         match position {
-            0 => *current_segment |= segment as u8,
-            1 => *current_segment |= (segment as u8) << 2,
-            2 => *current_segment |= (segment as u8) << 4,
-            3 => *current_segment |= (segment as u8) << 6,
+            0 => *current_cluster |= segment as u8,
+            1 => *current_cluster |= (segment as u8) << 2,
+            2 => *current_cluster |= (segment as u8) << 4,
+            3 => *current_cluster |= (segment as u8) << 6,
             _ => unreachable!(),
         }
-        self.increment_length();
+        self.len += 1;
     }
 
-    fn current_segment(&mut self) -> &mut MorseCluster {
+    fn current_cluster(&mut self) -> &mut MorseCluster {
+        self.expand_if_full();
         &mut self.data[self.len / 4]
     }
-    fn increment_length(&mut self) {
-        self.len += 1;
+    fn expand_if_full(&mut self) {
         if self.len.is_multiple_of(4) && self.len / 4 == self.data.len() {
-            self.data.push(0b00);
+            self.data.push(MorseCluster(0b00));
         }
+    }
+    fn unpack(&self) -> Vec<MorseSegment> {
+        let mut segments: Vec<MorseSegment> = Vec::new();
+        for cluster in &self.data {
+            let bits = cluster.unpack();
+            for bit in bits {
+                segments.push(bit);
+            }
+        }
+        while segments.len() > self.len {
+            segments.pop();
+        }
+        segments
     }
     fn to_text(&self) -> Vec<char> {
         Vec::new()
@@ -186,17 +191,41 @@ impl MorseString {
 #[cfg(test)]
 mod tests {
     use agb::println;
-    use core::assert_matches;
 
     use super::*;
 
+    struct TestContext {
+        cluster: MorseCluster,
+        segment_vec: Vec<MorseSegment>,
+        morse_string: MorseString,
+    }
+    impl TestContext {
+        fn new() -> TestContext {
+            let dot: MorseSegment = MorseSegment::Dot;
+            let dash: MorseSegment = MorseSegment::Dash;
+            let lend: MorseSegment = MorseSegment::LetterEnd;
+            let wend: MorseSegment = MorseSegment::WordEnd;
+            TestContext {
+                cluster: MorseCluster(0b00011011),
+                segment_vec: alloc::vec![
+                    dot, dot, lend, dot, dash, dash, lend, dash, dot, dash, dot, lend, wend,
+                ],
+                morse_string: pack_morse_string(&alloc::vec![
+                    dot, dash, lend, dot, wend, dash, dash, dash, dash, dash, lend, dot, lend,
+                    dash, dot, dash, wend
+                ]),
+            }
+        }
+    }
+
     #[test_case]
     fn test_extract_single_segment(_gba: &mut agb::Gba) {
-        let data = 0b00011011;
-        assert_eq!(extract_morse_segment(data, 3), MorseSegment::Dot);
-        assert_eq!(extract_morse_segment(data, 2), MorseSegment::Dash);
-        assert_eq!(extract_morse_segment(data, 1), MorseSegment::LetterEnd);
-        assert_eq!(extract_morse_segment(data, 0), MorseSegment::WordEnd);
+        let ctx = TestContext::new();
+        let unpacked = ctx.cluster.unpack();
+        assert_eq!(MorseSegment::Dot, unpacked[3]);
+        assert_eq!(MorseSegment::Dash, unpacked[2]);
+        assert_eq!(MorseSegment::LetterEnd, unpacked[1]);
+        assert_eq!(MorseSegment::WordEnd, unpacked[0]);
     }
 
     #[test_case]
@@ -205,11 +234,47 @@ mod tests {
             panic!("No bindings found");
         };
         let expected_result = &alloc::vec![MorseSegment::Dot, MorseSegment::Dash];
-        // println!("{:?}-{:?}", result, expected_result);
         assert_eq!(result, expected_result);
     }
     #[test_case]
     fn test_bindings_length(_gba: &mut agb::Gba) {
         assert_eq!(MORSE_BINDINGS.len(), 51);
     }
+    #[test_case]
+    fn test_pack_unpack(_gba: &mut agb::Gba) {
+        let ctx = TestContext::new();
+        let packed = pack_morse_string(&ctx.segment_vec);
+        let unpacked = packed.unpack();
+        assert_eq!(unpacked, ctx.segment_vec);
+    }
+
+    #[test_case]
+    fn test_unpack_pack(_gba: &mut agb::Gba) {
+        let ctx = TestContext::new();
+        let data = ctx.cluster;
+        let intermediate = data.unpack().to_vec();
+        let repacked = pack_morse_string(&intermediate);
+        assert_eq!(data, repacked.data[0]);
+    }
+    #[test_case]
+    fn test_current_cluster_expands_correctly(_gba: &mut agb::Gba) {
+        let mut new = MorseString::new();
+        new.current_cluster();
+        assert_eq!(new.current_cluster(), MorseString::new().current_cluster());
+        new.pack_segment(MorseSegment::Dot);
+        assert_eq!(new.len, 1);
+    }
+
+    #[test_case]
+    fn test_unpack_length(_gba: &mut agb::Gba) {
+        let ctx = TestContext::new();
+        let m_str = &ctx.morse_string;
+        assert_eq!(m_str.unpack().len(), ctx.morse_string.len);
+    }
 }
+/*
+~~~test template~~~
+#[test_case]
+fn test(_gba:&mut agb::Gba){}
+let ctx = TestContext::new();
+*/
