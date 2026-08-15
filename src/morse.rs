@@ -188,9 +188,29 @@ impl MorseString {
     }
 }
 
+fn string_to_morse(input: alloc::string::String) -> MorseString {
+    let mut temp: Vec<MorseSegment> = Vec::new();
+    for char in input.chars() {
+        let Some(chardata) = MORSE_BINDINGS.get(&char.to_ascii_lowercase()) else {
+            agb::println!(
+                "\nNonfatal error: {:?} is not a valid character. Skipping\n",
+                char
+            );
+            continue;
+        };
+        temp.append(&mut chardata.clone());
+        if char != ' ' {
+            temp.push(MorseSegment::LetterEnd);
+        }
+    }
+    temp.push(MorseSegment::WordEnd);
+    pack_morse_string(&temp)
+}
+
 #[cfg(test)]
 mod tests {
     use agb::println;
+    use alloc::borrow::ToOwned;
 
     use super::*;
 
@@ -198,6 +218,7 @@ mod tests {
         cluster: MorseCluster,
         segment_vec: Vec<MorseSegment>,
         morse_string: MorseString,
+        wife_vec: Vec<MorseSegment>,
     }
     impl TestContext {
         fn new() -> TestContext {
@@ -211,9 +232,15 @@ mod tests {
                     dot, dot, lend, dot, dash, dash, lend, dash, dot, dash, dot, lend, wend,
                 ],
                 morse_string: pack_morse_string(&alloc::vec![
-                    dot, dash, lend, dot, wend, dash, dash, dash, dash, dash, lend, dot, lend,
-                    dash, dot, dash, wend
+                    dot, dash, lend, dot, lend, wend, dash, dash, dash, dash, dash, lend, dot,
+                    lend, dash, dot, dash, lend, wend
                 ]),
+                wife_vec: alloc::vec![
+                    dot, dot, dot, dot, lend, dot, dot, lend, wend, dash, dot, dash, lend, dot,
+                    dash, lend, dash, dot, dash, dash, lend, dot, dash, dot, dot, lend, dot, dash,
+                    lend, wend, dash, dash, dash, dot, dot, dot, lend, dot, dot, dot, dash, dash,
+                    lend, wend,
+                ],
             }
         }
     }
@@ -271,10 +298,20 @@ mod tests {
         let m_str = &ctx.morse_string;
         assert_eq!(m_str.unpack().len(), ctx.morse_string.len);
     }
+    #[test_case]
+    fn test_wife_greeting(_gba: &mut agb::Gba) {
+        let ctx = TestContext::new();
+        let printable = string_to_morse("hi Kayla :3".to_owned()).unpack();
+        println!("\n{:?}\n", printable);
+        assert_eq!(printable, ctx.wife_vec);
+    }
 }
 /*
 ~~~test template~~~
 #[test_case]
-fn test(_gba:&mut agb::Gba){}
+fn test(_gba:&mut agb::Gba){
 let ctx = TestContext::new();
+}
+
+println!("\n{:?"}\n",   );
 */
