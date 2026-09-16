@@ -16,6 +16,9 @@
 extern crate alloc;
 
 pub mod morse;
+pub mod state;
+pub mod timer;
+pub mod tippytap;
 // The main function must take 1 argument and never returns, and must be marked with
 // the #[agb::entry] macro.
 #[agb::entry]

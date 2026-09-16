@@ -1,5 +1,4 @@
 use agb::hash_map::HashMap;
-use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -208,6 +207,7 @@ fn to_string(segments: &Vec<MorseSegment>) -> String {
             new_string.push(' ');
         }
     }
+    flush_char_segments_to_string(&mut char_segments, &mut new_string);
     new_string
 }
 
@@ -313,7 +313,10 @@ mod tests {
         segment_vec: Vec<MorseSegment>,
         morse_string: MorseString,
         wife_vec: Vec<MorseSegment>,
+        cursed_vec: Vec<MorseSegment>,
+        bun_string: String,
     }
+    //typically this is called a fixture (all the stuff set up before a test)
     impl TestContext {
         fn new() -> TestContext {
             let dot: MorseSegment = MorseSegment::Dot;
@@ -335,6 +338,11 @@ mod tests {
                     lend, wend, dash, dash, dash, dot, dot, dot, lend, dot, dot, dot, dash, dash,
                     lend, wend,
                 ],
+                cursed_vec: vec![
+                    dot, dot, lend, dot, dot, wend, wend, wend, wend, lend, lend, lend, lend, dot,
+                ],
+                bun_string: "I am a bunny, I go hoppity hop and say 'yay!!'.  . beep boop."
+                    .to_owned(),
             }
         }
     }
@@ -407,8 +415,16 @@ mod tests {
         assert_eq!(empty.len, also_empty.len);
         assert_eq!(empty.data, also_empty.data);
     }
-}
 
+    #[test_case]
+    fn test_stringify(_gba: &mut agb::Gba) {
+        let ctx = TestContext::new();
+        let mstring = string_to_morse(ctx.bun_string.clone());
+        println!("\n{:?}\n", mstring);
+        println!("\n##{:?}##\n", mstring.stringify());
+        println!("\n##{:?}##\n", to_string(&ctx.cursed_vec));
+    } //this isn't a test- I can't focus rn so... not going to be a test just now, but I don't see any issues. It discarded invalid characters, converted string to morse and back, we're good!
+}
 /*
 ~~~test template~~~
 #[test_case]
@@ -416,5 +432,5 @@ fn test(_gba:&mut agb::Gba){
 let ctx = TestContext::new();
 }
 
-println!("\n{:?"}\n",   );
+println!("\n{:?}\n",   );
 */
