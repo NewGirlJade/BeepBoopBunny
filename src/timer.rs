@@ -2,8 +2,7 @@
 
 */
 use agb::timer::{Divider, Timer};
-const TICKS_PER_SEC: u64 = 16384; // 2^24 hz / divider1024
-
+const TICKS_PER_SEC: u64 = 16384; // divider1024 ticks at a rate of 16.384kHz
 pub struct GameTimer {
     timer_low: Timer,
     timer_hi: Timer, //cascade counter, most significant digits

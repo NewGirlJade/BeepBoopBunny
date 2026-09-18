@@ -1,9 +1,42 @@
+use agb::input::ButtonController;
+
 //global state which needs to persist as long as the game runs
+//pulled from save data if found, or sets defaults
 struct GameState {
+    input: agb::input::ButtonController,
     game_settings: SettingsState,
     game_progress: u16,
 }
-//game settings data- pulled from save data if found, or sets defaults
+impl GameState {
+    fn setup() -> GameState {
+        //things which don't change based on save state
+        let input = ButtonController::new();
+        //if a save is detected
+
+        /*placeholder code. I'll likely be asking agb's save/EEPROM API something like "does valid data exist here," which returns a bool or Option you'd match on — a good next rabbit hole*/
+        let save = false;
+        if save {
+            Self::from_save(input)
+        } else {
+            Self::new(input)
+        }
+    }
+    fn new(input: ButtonController) -> GameState {
+        GameState {
+            input: (input),
+            game_settings: SettingsState::new(),
+            game_progress: (0),
+        }
+    }
+    fn from_save(input: ButtonController) -> GameState {
+        GameState {
+            input: (input),
+            game_settings: (SettingsState::from_save()),
+            game_progress: (0/*load progress from save file*/),
+        }
+    }
+}
+
 struct SettingsState {
     //text_speed, words per minute, sound volume, enable flashing, tone picker (preset1..x or custom), pitch, noise, filtering, etc.
 }
