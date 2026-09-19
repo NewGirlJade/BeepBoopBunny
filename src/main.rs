@@ -10,18 +10,26 @@
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
+#![allow(dead_code, unused_variables)]
 
 // By default no_std crates don't get alloc, so you won't be able to use things like Vec
 // until you declare the extern crate. `agb` provides an allocator so it will all work
 extern crate alloc;
 
+pub mod gameloop;
 pub mod morse;
 pub mod state;
 pub mod timer;
 pub mod tippytap;
+
 // The main function must take 1 argument and never returns, and must be marked with
 // the #[agb::entry] macro.
 #[agb::entry]
 fn main(gba: agb::Gba) -> ! {
-    agb::no_game(gba);
+    let mut gamestate = state::GameState::setup();
+
+    loop {
+        gameloop::update(&mut gamestate);
+        gameloop::draw(&mut gamestate);
+    }
 }
