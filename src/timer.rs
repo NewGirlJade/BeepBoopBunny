@@ -1,6 +1,9 @@
-/*
+//              //
+/* * timer.rs * */
+//              //
+// tools for handling the agbrs timers more easily
+// useful for handling user morse input
 
-*/
 use agb::timer::{Divider, Timer};
 const TICKS_PER_SEC: u64 = 16384; // divider1024 ticks at a rate of 16.384kHz
 pub struct GameTimer {

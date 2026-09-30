@@ -1,3 +1,8 @@
+//              //
+/* * morse.rs * */
+//              //
+// Tools for storing and parsing Morse code data. Can turn strings into Morse-code-strings and back again.
+
 use agb::hash_map::HashMap;
 use alloc::string::String;
 use alloc::vec;

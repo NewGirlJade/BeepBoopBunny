@@ -1,3 +1,8 @@
+//              //
+/* * state.rs * */
+//              //
+// series of structs for data which must persist between frames
+
 use agb::input::ButtonController;
 
 //global state which needs to persist as long as the game runs
@@ -7,36 +12,41 @@ pub struct GameState {
     pub game_settings: SettingsState,
     pub game_progress: u16,
     pub game_state: TopLevelState,
+    pub gba: agb::Gba,
 }
 impl GameState {
-    pub fn setup() -> GameState {
+    pub fn setup(gba: agb::Gba) -> GameState {
         //things which don't change based on save state
         let input = ButtonController::new();
         //if a save is detected
-
         /*placeholder code. I'll likely be asking agb's save/EEPROM API something like "does valid data exist here," which returns a bool or Option you'd match on — a good next rabbit hole*/
         let save = false;
         if save {
-            Self::from_save(input)
+            Self::from_save(input, gba)
         } else {
-            Self::new(input)
+            Self::new(input, gba)
         }
     }
-    fn new(input: ButtonController) -> GameState {
+    fn new(input: ButtonController, gba: agb::Gba) -> GameState {
         GameState {
             input: (input),
             game_settings: SettingsState::new(),
             game_progress: (0),
             game_state: TopLevelState::MainMenu(MainMenuState {}),
+            gba,
         }
     }
-    fn from_save(input: ButtonController) -> GameState {
+    fn from_save(input: ButtonController, gba: agb::Gba) -> GameState {
         GameState {
             input: (input),
             game_settings: (SettingsState::from_save()),
             game_progress: (0/*load progress from save file*/),
             game_state: TopLevelState::MainMenu(MainMenuState {}),
+            gba,
         }
+    }
+    pub fn testo(&self) -> u16 {
+        self.game_progress
     }
 }
 

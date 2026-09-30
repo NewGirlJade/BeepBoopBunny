@@ -1,3 +1,8 @@
+//             //
+/* * main.rs * */
+//             //
+//entry point. Sets up a library of data that should persist between frames. Then it enters an infinite loop, during which update() and then draw() (found in gameloop.rs) are called each frame.
+
 // Games made using `agb` are no_std which means you don't have access to the standard
 // rust library. This is because the game boy advance doesn't have an operating
 // system, so most of the content of the standard library doesn't apply.
@@ -16,6 +21,7 @@
 // until you declare the extern crate. `agb` provides an allocator so it will all work
 extern crate alloc;
 
+// modules found in src/
 pub mod gameloop;
 pub mod morse;
 pub mod state;
@@ -25,8 +31,8 @@ pub mod tippytap;
 // The main function must take 1 argument and never returns, and must be marked with
 // the #[agb::entry] macro.
 #[agb::entry]
-fn main(gba: agb::Gba) -> ! {
-    let mut gamestate = state::GameState::setup();
+fn main(mut gba: agb::Gba) -> ! {
+    let mut gamestate = state::GameState::setup(gba);
 
     loop {
         gameloop::update(&mut gamestate);
